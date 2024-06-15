@@ -1,2 +1,5 @@
 osmnx
 scikit-learn
+geopandas 
+networkx 
+shapely
