@@ -2,5 +2,4 @@ osmnx
 scikit-learn
 geopandas 
 networkx 
-geopy
 shapely
