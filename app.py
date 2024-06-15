@@ -1,7 +1,6 @@
 import streamlit as st
 import osmnx as ox
 import random
-from geopy.geocoders import Nominatim
 
 def get_street_description(lat, lng):
     try:
@@ -41,14 +40,7 @@ def get_street_description(lat, lng):
 
         main_street = data.get('name', 'Unknown')
 
-        geolocator = Nominatim(user_agent="geoapiExercises")
-        location = geolocator.reverse(f"{lat}, {lng}", exactly_one=True)
-        address = location.raw.get('address', {})
-        city = address.get('city', 'Unknown')
-        state = address.get('state', 'Unknown')
-        country = address.get('country', 'Unknown')
-
-        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}, {city}, {state}, {country}</span>**"
+        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}</span>**"
     
     except ImportError as e:
         st.markdown("<span style='color:gray;'>An error occurred while importing necessary modules. Please ensure OSMnx and its dependencies are installed.</span>", unsafe_allow_html=True)
