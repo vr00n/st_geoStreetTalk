@@ -55,7 +55,7 @@ def get_street_description(lat, lng):
 st.title('Street Description Finder')
 st.write('Enter latitude and longitude coordinates to get the street description.')
 
-coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
+coords = st.text_input('Coordinates (lat, long)', '40.74877458772793, -73.98536222939242')
 coords = coords.split(',')
 
 try:
