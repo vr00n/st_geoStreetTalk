@@ -17,16 +17,19 @@ def get_street_description(lat, lng):
         nearest_node = ox.distance.nearest_nodes(G, lng, lat)
         st.write(f"Nearest node found: {nearest_node}")
 
-        u, v, key = min(G.edges(nearest_node, keys=True, data=True), key=lambda x: G.nodes[x[1]]['y'])
+        # Find the nearest edge
+        u, v, key = list(G.edges(nearest_node, keys=True))[0]
         st.write(f"Nearest edge found: ({u}, {v}, {key})")
 
         # Get intersecting streets at each node
         def get_intersecting_streets(G, node):
             intersecting_streets = []
             for neighbor in G.neighbors(node):
-                street_name = G.edges[node, neighbor, 0].get('name')
-                if street_name:
-                    intersecting_streets.append(street_name if isinstance(street_name, str) else street_name[0])
+                edge_data = G.get_edge_data(node, neighbor)
+                for key in edge_data:
+                    street_name = edge_data[key].get('name')
+                    if street_name:
+                        intersecting_streets.append(street_name if isinstance(street_name, str) else street_name[0])
             return list(set(intersecting_streets))
 
         neighbors_u = list(G.neighbors(u))
@@ -65,12 +68,9 @@ def get_street_description(lat, lng):
 st.title('Street Description Finder')
 st.write('Enter latitude and longitude coordinates to get the street description in the format "lat, long".')
 
-coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
+lat = st.number_input('Latitude', value=40.7217267)
+lng = st.number_input('Longitude', value=-73.9870392)
 
 if st.button('Find Street Description'):
-    try:
-        lat, lng = map(float, coords.split(','))
-        description = get_street_description(lat, lng)
-        st.write(description)
-    except ValueError:
-        st.write("Please enter valid coordinates in the format 'lat, long'.")
+    description = get_street_description(lat, lng)
+    st.write(description)
