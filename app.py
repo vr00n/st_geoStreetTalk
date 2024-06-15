@@ -52,11 +52,6 @@ def get_street_description(lat, lng):
         st.write(str(e))
         return "<span style='color:red;'>Error: Unable to process the request.</span>"
 
-def generate_random_coordinates():
-    lat = random.uniform(-90, 90)
-    lng = random.uniform(-180, 180)
-    return lat, lng
-
 st.title('Street Description Finder')
 st.write('Enter latitude and longitude coordinates to get the street description.')
 
@@ -68,10 +63,6 @@ try:
     lng = float(coords[1].strip())
 except:
     st.write("Please enter valid coordinates.")
-
-if st.button('Generate Random Coordinates'):
-    lat, lng = generate_random_coordinates()
-    st.write(f"Generated Random Coordinates: {lat}, {lng}")
 
 if st.button('Find Street Description'):
     description = get_street_description(lat, lng)
