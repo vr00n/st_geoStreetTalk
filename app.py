@@ -40,17 +40,18 @@ def get_street_description(lat, lng):
 
         main_street = data.get('name', 'Unknown')
 
-        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}</span>**"
+        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}</span>**", lat, lng
     
     except ImportError as e:
         st.markdown("<span style='color:gray;'>An error occurred while importing necessary modules. Please ensure OSMnx and its dependencies are installed.</span>", unsafe_allow_html=True)
         st.write(str(e))
-        return "<span style='color:red;'>Error: Unable to process the request due to import issues.</span>"
+        return "<span style='color:red;'>Error: Unable to process the request due to import issues.</span>", None, None
 
     except Exception as e:
         st.markdown("<span style='color:gray;'>An error occurred while processing the request.</span>", unsafe_allow_html=True)
         st.write(str(e))
-        return "<span style='color:red;'>Error: Unable to process the request.</span>"
+        return "<span style='color:red;'>Error: Unable to process the request.</span>", None, None
+
 
 st.title('Street Description Finder')
 st.write('Enter latitude and longitude coordinates to get the street description.')
@@ -65,5 +66,7 @@ except:
     st.write("Please enter valid coordinates.")
 
 if st.button('Find Street Description'):
-    description = get_street_description(lat, lng)
+    description, lat, lng = get_street_description(lat, lng)
     st.markdown(description, unsafe_allow_html=True)
+    if lat and lng:
+        st.markdown(f"[Google Maps Link](https://www.google.com/maps?q={lat},{lng})")
