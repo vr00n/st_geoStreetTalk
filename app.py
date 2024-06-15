@@ -65,8 +65,8 @@ def get_street_description(lat, lng):
         return "Error: Unable to process the request."
 
 # Streamlit app layout
-st.title('Street Description Finder')
-st.write('Enter latitude and longitude coordinates to get the street description in the format "lat, long".')
+st.title('Geo Street Talk')
+st.write('Enter any street-based lat/lon coordinates to get back a recognizable description of the street')
 
 coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
 
