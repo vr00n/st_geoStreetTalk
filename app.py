@@ -39,11 +39,14 @@ def get_street_description(lat, lng):
 
 # Streamlit app layout
 st.title('Street Description Finder')
-st.write('Enter a latitude and longitude to get the street description.')
+st.write('Enter latitude and longitude coordinates to get the street description in the format "lat, long".')
 
-lat = st.number_input('Latitude', value=40.7217267)
-lng = st.number_input('Longitude', value=-73.9870392)
+coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
 
 if st.button('Find Street Description'):
-    description = get_street_description(lat, lng)
-    st.write(description)
+    try:
+        lat, lng = map(float, coords.split(','))
+        description = get_street_description(lat, lng)
+        st.write(description)
+    except ValueError:
+        st.write("Please enter valid coordinates in the format 'lat, long'.")
