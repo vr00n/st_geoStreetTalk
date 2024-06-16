@@ -9,6 +9,11 @@ def get_street_description(lat, lng):
         G = ox.graph_from_point((lat, lng), dist=100, network_type='drive')
         st.markdown("<span style='color:gray;'>Street network downloaded.</span>", unsafe_allow_html=True)
         
+        # Check if the graph is empty
+        if G is None or len(G.nodes) == 0:
+            st.markdown("<span style='color:gray;'>The graph is empty or undefined. No streets found.</span>", unsafe_allow_html=True)
+            return "Error: No streets found in the given area.", "Unknown"
+        
         nearest_node = ox.distance.nearest_nodes(G, lng, lat)
         st.markdown(f"<span style='color:gray;'>Nearest node found: {nearest_node}</span>", unsafe_allow_html=True)
         
