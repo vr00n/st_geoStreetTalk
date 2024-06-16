@@ -21,17 +21,12 @@ def get_street_description(lat, lng):
         intersecting_streets_u = list(set(G.edges[u, n, 0]['name'] for n in neighbors_u if 'name' in G.edges[u, n, 0]))
         intersecting_streets_v = list(set(G.edges[v, n, 0]['name'] for n in neighbors_v if 'name' in G.edges[v, n, 0]))
         
-        to_street = intersecting_streets_u[0] if intersecting_streets_u else "Unknown"
-        from_street = intersecting_streets_v[0] if intersecting_streets_v else "Unknown"
+        # Ensure unique street names for "On Street," "From Street," and "To Street"
+        street_name = G.edges[u, v, k].get('name', 'Unknown')
+        to_street = next((street for street in intersecting_streets_u if street != street_name), "Unknown")
+        from_street = next((street for street in intersecting_streets_v if street != street_name and street != to_street), "Unknown")
         
-        if to_street == from_street and len(intersecting_streets_u) > 1:
-            to_street = intersecting_streets_u[1]
-        
-        street_name_u = G.edges[u, v, k].get('name', 'Unknown')
-        street_name_v = G.edges[u, v, k].get('name', 'Unknown')
-        
-        street_name = street_name_u if street_name_u != 'Unknown' else street_name_v
-        description = f"{street_name} between {to_street} and {from_street}"
+        description = f"{street_name} between {from_street} and {to_street}"
         
         st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
         
