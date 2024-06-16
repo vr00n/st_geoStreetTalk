@@ -33,12 +33,17 @@ def get_street_description(lat, lng):
         st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
         
         # Find nearest landmark using Overpass API
-        description, landmark = find_nearest_landmark(lat, lng)
-        return description, landmark
+        landmark = find_nearest_landmark(lat, lng)
+        if landmark != "Unknown":
+            description += f". Nearest landmark: {landmark}"
+        else:
+            description += ". No recognizable landmarks found nearby."
+        
+        return description
 
     except Exception as e:
         st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
-        return "Error: Unable to process the request.", "Unknown"
+        return "Error: Unable to process the request."
 
 # Function to find nearest landmark
 def find_nearest_landmark(lat, lng):
@@ -46,15 +51,13 @@ def find_nearest_landmark(lat, lng):
         api = overpy.Overpass()
         query = f"""
         [out:json];
-        (
-          node(around:50,{lat},{lng})[amenity]
-        );
+        node(around:100,{lat},{lng})[amenity];
         out center;
         """
         result = api.query(query)
         
         landmark = "Unknown"
-        if result:
+        if result.nodes:
             landmark = result.nodes[0].tags.get('name', 'Unknown')
         
         st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
@@ -74,10 +77,8 @@ coords = st.text_input('Coordinates (lat, long)', '40.78168979595882, -73.954872
 if st.button('Find Street Description'):
     try:
         lat, lng = map(float, coords.split(','))
-        description, landmark = get_street_description(lat, lng)
+        description = get_street_description(lat, lng)
         st.markdown(f"**<span style='font-size: 24px;'>{description}</span>**", unsafe_allow_html=True)
-        if landmark != "Unknown":
-            st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         google_maps_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
         st.markdown(f"[Google Maps Link]({google_maps_link})")
     except Exception as e:
