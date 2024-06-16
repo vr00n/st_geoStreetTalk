@@ -1,22 +1,18 @@
 import streamlit as st
 import osmnx as ox
 import overpy
-from streamlit.logger import get_logger
-
-# Initialize logger
-logger = get_logger(__name__)
 
 # Function to get street description
 def get_street_description(lat, lng):
-    logger.info("Downloading street network...")
+    st.markdown("<span style='color:gray;'>Downloading street network...</span>", unsafe_allow_html=True)
     G = ox.graph_from_point((lat, lng), dist=100, network_type='drive')
-    logger.info("Street network downloaded.")
+    st.markdown("<span style='color:gray;'>Street network downloaded.</span>", unsafe_allow_html=True)
     
     nearest_node = ox.distance.nearest_nodes(G, lng, lat)
-    logger.info(f"Nearest node found: {nearest_node}")
+    st.markdown(f"<span style='color:gray;'>Nearest node found: {nearest_node}</span>", unsafe_allow_html=True)
     
     u, v, k = ox.distance.nearest_edges(G, lng, lat)
-    logger.info(f"Nearest edge found: {(u, v, k)}")
+    st.markdown(f"<span style='color:gray;'>Nearest edge found: {(u, v, k)}</span>", unsafe_allow_html=True)
     
     neighbors_u = list(G.neighbors(u))
     neighbors_v = list(G.neighbors(v))
@@ -35,7 +31,7 @@ def get_street_description(lat, lng):
     street_name = street_name_u if street_name_u != 'Unknown' else street_name_v
     description = f"{street_name} between {to_street} and {from_street}"
     
-    logger.info(f"Generated description: {description}")
+    st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
     
     # Use Overpass API to find the nearest landmark
     api = overpy.Overpass()
@@ -49,9 +45,14 @@ def get_street_description(lat, lng):
     nearest_landmark = "Unknown"
     if result.nodes:
         nearest_landmark = result.nodes[0].tags.get('name', 'Unknown')
-        logger.info(f"Nearest landmark found: {nearest_landmark}")
+        if nearest_landmark == 'Unknown' and len(result.nodes) > 1:
+            nearest_landmark = result.nodes[1].tags.get('name', 'Unknown')
+        st.markdown(f"<span style='color:gray;'>Nearest landmark found: {nearest_landmark}</span>", unsafe_allow_html=True)
     
-    description = f"{description}. Nearest landmark: {nearest_landmark}"
+    if nearest_landmark == "Unknown":
+        description += ". No recognizable landmarks found nearby."
+    else:
+        description += f". Nearest landmark: {nearest_landmark}"
     
     return description
 
@@ -65,9 +66,9 @@ if st.button('Find Street Description'):
     try:
         lat, lng = map(float, coords.split(','))
         description = get_street_description(lat, lng)
-        st.write(f"**{description}**")
+        st.markdown(f"**<span style='font-size: 24px;'>{description}</span>**", unsafe_allow_html=True)
         google_maps_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
         st.markdown(f"[Google Maps Link]({google_maps_link})")
     except Exception as e:
         st.error(f"An error occurred: {e}")
-        logger.error(f"Error: {e}")
+        st.markdown(f"<span style='color:gray;'>Error: {e}</span>", unsafe_allow_html=True)
