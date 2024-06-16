@@ -47,21 +47,15 @@ def find_nearest_landmark(lat, lng):
         query = f"""
         [out:json];
         (
-          node(around:100,{lat},{lng})[amenity];
-          way(around:100,{lat},{lng})[amenity];
-          relation(around:100,{lat},{lng})[amenity];
+          node(around:50,{lat},{lng})[amenity]
         );
         out center;
         """
         result = api.query(query)
         
         landmark = "Unknown"
-        if result.nodes:
+        if result:
             landmark = result.nodes[0].tags.get('name', 'Unknown')
-        elif result.ways:
-            landmark = result.ways[0].tags.get('name', 'Unknown')
-        elif result.relations:
-            landmark = result.relations[0].tags.get('name', 'Unknown')
         
         st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         
