@@ -14,6 +14,15 @@ def get_street_description(lat, lng):
             st.markdown("<span style='color:gray;'>The graph is empty or undefined. No streets found.</span>", unsafe_allow_html=True)
             return "Error: No streets found in the given area.", "Unknown"
         
+        # Debugging: Show properties of nodes and edges
+        st.markdown("<span style='color:gray;'>Nodes properties:</span>", unsafe_allow_html=True)
+        for node, data in G.nodes(data=True):
+            st.markdown(f"<span style='color:gray;'>{node}: {data}</span>", unsafe_allow_html=True)
+        
+        st.markdown("<span style='color:gray;'>Edges properties:</span>", unsafe_allow_html=True)
+        for u, v, key, data in G.edges(keys=True, data=True):
+            st.markdown(f"<span style='color:gray;'>{u} -> {v} (key: {key}): {data}</span>", unsafe_allow_html=True)
+        
         nearest_node = ox.distance.nearest_nodes(G, lng, lat)
         st.markdown(f"<span style='color:gray;'>Nearest node found: {nearest_node}</span>", unsafe_allow_html=True)
         
@@ -36,7 +45,8 @@ def get_street_description(lat, lng):
         st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
         
         # Find nearest landmark using Overpass API
-        landmark = find_nearest_landmark(lat, lng)
+        description, landmark, raw_result = find_nearest_landmark(lat, lng)
+        st.markdown(f"<span style='color:gray;'>Raw Overpass result: {raw_result}</span>", unsafe_allow_html=True)
         return description, landmark
 
     except Exception as e:
@@ -62,11 +72,11 @@ def find_nearest_landmark(lat, lng):
         
         st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         
-        return landmark
+        return landmark, result
     
     except Exception as e:
         st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
-        return "Unknown"
+        return "Unknown", {}
 
 # Streamlit app layout
 st.title("Street Description Finder")
