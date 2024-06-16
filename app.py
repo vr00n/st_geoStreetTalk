@@ -14,14 +14,14 @@ def get_street_description(lat, lng):
             st.markdown("<span style='color:gray;'>The graph is empty or undefined. No streets found.</span>", unsafe_allow_html=True)
             return "Error: No streets found in the given area.", "Unknown"
         
-        # Debugging: Show properties of nodes and edges
-        st.markdown("<span style='color:gray;'>Nodes properties:</span>", unsafe_allow_html=True)
-        for node, data in G.nodes(data=True):
-            st.markdown(f"<span style='color:gray;'>{node}: {data}</span>", unsafe_allow_html=True)
+        # # Debugging: Show properties of nodes and edges
+        # st.markdown("<span style='color:gray;'>Nodes properties:</span>", unsafe_allow_html=True)
+        # for node, data in G.nodes(data=True):
+        #     st.markdown(f"<span style='color:gray;'>{node}: {data}</span>", unsafe_allow_html=True)
         
-        st.markdown("<span style='color:gray;'>Edges properties:</span>", unsafe_allow_html=True)
-        for u, v, key, data in G.edges(keys=True, data=True):
-            st.markdown(f"<span style='color:gray;'>{u} -> {v} (key: {key}): {data}</span>", unsafe_allow_html=True)
+        # st.markdown("<span style='color:gray;'>Edges properties:</span>", unsafe_allow_html=True)
+        # for u, v, key, data in G.edges(keys=True, data=True):
+        #     st.markdown(f"<span style='color:gray;'>{u} -> {v} (key: {key}): {data}</span>", unsafe_allow_html=True)
         
         nearest_node = ox.distance.nearest_nodes(G, lng, lat)
         st.markdown(f"<span style='color:gray;'>Nearest node found: {nearest_node}</span>", unsafe_allow_html=True)
