@@ -65,7 +65,7 @@ def find_nearest_landmark(lat, lng):
         query = f"""
         [out:json];
         node(around:100,{lat},{lng})[amenity~"shop|cafe"];
-        out center;
+        out body;
         """
         result = api.query(query)
         
@@ -73,10 +73,12 @@ def find_nearest_landmark(lat, lng):
         if result.nodes:
             landmark = result.nodes[0].tags.get('name', 'Unknown')
         
+        raw_result = result.nodes[0].tags if result.nodes else "No results"
+        
         st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         
-        return landmark, result
-        
+        return landmark, raw_result
+    
     except Exception as e:
         st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
         return "Unknown", {}
