@@ -1,5 +1,6 @@
 import streamlit as st
 import osmnx as ox
+import requests
 import random
 
 def get_street_description(lat, lng):
@@ -40,7 +41,24 @@ def get_street_description(lat, lng):
 
         main_street = data.get('name', 'Unknown')
 
-        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}</span>**", lat, lng
+        # Query Overpass Turbo for the nearest landmark
+        overpass_url = "http://overpass-api.de/api/interpreter"
+        overpass_query = f"""
+        [out:json];
+        node
+          [amenity]
+          (around:500,{lat},{lng});
+        out body;
+        """
+        response = requests.get(overpass_url, params={'data': overpass_query})
+        data = response.json()
+
+        if data['elements']:
+            nearest_landmark = data['elements'][0]['tags'].get('name', 'Unknown Landmark')
+        else:
+            nearest_landmark = 'No landmark found'
+
+        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}</span>**\n\n**Nearest Landmark:** {nearest_landmark}", lat, lng
     
     except ImportError as e:
         st.markdown("<span style='color:gray;'>An error occurred while importing necessary modules. Please ensure OSMnx and its dependencies are installed.</span>", unsafe_allow_html=True)
@@ -56,7 +74,7 @@ def get_street_description(lat, lng):
 st.title('Street Description Finder')
 st.write('Enter latitude and longitude coordinates to get the street description.')
 
-coords = st.text_input('Coordinates (lat, long)', '40.75253340598131, -73.98747748993145')
+coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
 coords = coords.split(',')
 
 try:
