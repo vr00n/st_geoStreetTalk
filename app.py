@@ -64,7 +64,7 @@ def find_nearest_landmark(lat, lng):
         api = overpy.Overpass()
         query = f"""
         [out:json];
-        node(around:1000,{lat},{lng})[amenity];
+        node(around:200,{lat},{lng})[amenity~"^restaurant$|^cafe$|^museum$|^park$|^monument$|^landmark$"];
         out body;
         """
         result = api.query(query)
