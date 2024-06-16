@@ -6,7 +6,7 @@ import overpy
 def get_street_description(lat, lng):
     try:
         st.markdown("<span style='color:gray;'>Downloading street network...</span>", unsafe_allow_html=True)
-        G = ox.graph_from_point((lat, lng), dist=100, network_type='drive')
+        G = ox.graph_from_point((lat, lng), dist=1000, network_type='drive')
         st.markdown("<span style='color:gray;'>Street network downloaded.</span>", unsafe_allow_html=True)
         
         # Check if the graph is empty
