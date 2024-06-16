@@ -1,85 +1,76 @@
 import streamlit as st
 import osmnx as ox
 import overpy
-import networkx as nx
 
 # Function to get street description
 def get_street_description(lat, lng):
     try:
         st.markdown("<span style='color:gray;'>Downloading street network...</span>", unsafe_allow_html=True)
-        G = ox.graph_from_point((lat, lng), dist=500, network_type='all_private', simplify=True)
+        G = ox.graph_from_point((lat, lng), dist=100, network_type='drive')
         st.markdown("<span style='color:gray;'>Street network downloaded.</span>", unsafe_allow_html=True)
         
-        st.markdown(f"<span style='color:gray;'>Finding the nearest street segment for point ({lat}, {lng})...</span>", unsafe_allow_html=True)
         nearest_node = ox.distance.nearest_nodes(G, lng, lat)
         st.markdown(f"<span style='color:gray;'>Nearest node found: {nearest_node}</span>", unsafe_allow_html=True)
         
-        nearest_edge = ox.distance.nearest_edges(G, lng, lat)
-        st.markdown(f"<span style='color:gray;'>Nearest edge found: {nearest_edge}</span>", unsafe_allow_html=True)
+        u, v, k = ox.distance.nearest_edges(G, lng, lat)
+        st.markdown(f"<span style='color:gray;'>Nearest edge found: {(u, v, k)}</span>", unsafe_allow_html=True)
         
-        u, v, _ = nearest_edge
+        neighbors_u = list(G.neighbors(u))
+        neighbors_v = list(G.neighbors(v))
         
-        u_neighbors = list(G.neighbors(u))
-        v_neighbors = list(G.neighbors(v))
+        intersecting_streets_u = [G.edges[u, n, 0]['name'] for n in neighbors_u if 'name' in G.edges[u, n, 0]]
+        intersecting_streets_v = [G.edges[v, n, 0]['name'] for n in neighbors_v if 'name' in G.edges[v, n, 0]]
         
-        st.markdown(f"<span style='color:gray;'>Neighbors of node {u}: {u_neighbors}</span>", unsafe_allow_html=True)
-        st.markdown(f"<span style='color:gray;'>Neighbors of node {v}: {v_neighbors}</span>", unsafe_allow_html=True)
+        to_street = intersecting_streets_u[0] if intersecting_streets_u else "Unknown"
+        from_street = intersecting_streets_v[0] if intersecting_streets_v else "Unknown"
         
-        u_intersections = [G.nodes[n].get('name', 'Unknown') for n in u_neighbors if 'name' in G.nodes[n]]
-        v_intersections = [G.nodes[n].get('name', 'Unknown') for n in v_neighbors if 'name' in G.nodes[n]]
+        street_name_u = G.edges[u, v, k].get('name', 'Unknown')
+        street_name_v = G.edges[u, v, k].get('name', 'Unknown')
         
-        st.markdown(f"<span style='color:gray;'>Intersecting streets at node {u}: {u_intersections}</span>", unsafe_allow_html=True)
-        st.markdown(f"<span style='color:gray;'>Intersecting streets at node {v}: {v_intersections}</span>", unsafe_allow_html=True)
+        street_name = street_name_u if street_name_u != 'Unknown' else street_name_v
+        description = f"{street_name} between {to_street} and {from_street}"
         
-        u_street = G.nodes[u].get('name', 'Unknown')
-        v_street = G.nodes[v].get('name', 'Unknown')
-        
-        st.markdown(f"<span style='color:gray;'>Street name at node {u}: {u_street}</span>", unsafe_allow_html=True)
-        st.markdown(f"<span style='color:gray;'>Street name at node {v}: {v_street}</span>", unsafe_allow_html=True)
-        
-        from_street = u_intersections[0] if u_intersections else 'Unknown'
-        to_street = v_intersections[0] if v_intersections else 'Unknown'
-        
-        description = f"{u_street} between {from_street} and {to_street}"
         st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
         
-        # Overpass API to find the nearest landmark
         api = overpy.Overpass()
         query = f"""
         [out:json];
-        (
-          node(around:100,{lat},{lng})[amenity];
-          way(around:100,{lat},{lng})[amenity];
-          relation(around:100,{lat},{lng})[amenity];
-        );
-        out center;
+        node(around:50,{lat},{lng})[amenity];
+        out body;
         """
         result = api.query(query)
         
-        landmark = "Unknown"
+        nearest_landmark = "Unknown"
         if result.nodes:
-            landmark = result.nodes[0].tags.get('name', 'Unknown')
-        elif result.ways:
-            landmark = result.ways[0].tags.get('name', 'Unknown')
-        elif result.relations:
-            landmark = result.relations[0].tags.get('name', 'Unknown')
+            nearest_landmark = result.nodes[0].tags.get('name', 'Unknown')
+            if nearest_landmark == 'Unknown' and len(result.nodes) > 1:
+                nearest_landmark = result.nodes[1].tags.get('name', 'Unknown')
+            st.markdown(f"<span style='color:gray;'>Nearest landmark found: {nearest_landmark}</span>", unsafe_allow_html=True)
         
-        st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
+        if nearest_landmark == "Unknown":
+            description += ". No recognizable landmarks found nearby."
+        else:
+            description += f". Nearest landmark: {nearest_landmark}"
         
-        return description, landmark
+        return description
+    
     except Exception as e:
         st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
-        return "Error: Unable to process the request.", "Unknown"
+        return "Error: Unable to process the request."
 
+# Streamlit app layout
 st.title("Street Description Finder")
 st.write("Enter latitude and longitude coordinates to get the street description.")
 
-coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
+coords = st.text_input('Coordinates (lat, long)', '40.78168979595882, -73.9548727701682')
 
 if st.button('Find Street Description'):
-    lat, lng = map(float, coords.split(","))
-    description, landmark = get_street_description(lat, lng)
-    st.markdown(f"<b style='font-size:20px;'>{description}</b>")
-    st.markdown(f"<b style='font-size:20px;'>Nearest landmark: {landmark}</b>")
-    google_maps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
-    st.markdown(f"[Google Maps Link]({google_maps_url})")
+    try:
+        lat, lng = map(float, coords.split(','))
+        description = get_street_description(lat, lng)
+        st.markdown(f"**<span style='font-size: 24px;'>{description}</span>**", unsafe_allow_html=True)
+        google_maps_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
+        st.markdown(f"[Google Maps Link]({google_maps_link})")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        st.markdown(f"<span style='color:gray;'>Error: {e}</span>", unsafe_allow_html=True)
