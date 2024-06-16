@@ -45,7 +45,7 @@ def get_street_description(lat, lng):
         
         # Find nearest landmark using Overpass API
         landmark, raw_result = find_nearest_landmark(lat, lng)
-        st.markdown(f"<span style='color:gray;'>Raw Overpass result: {raw_result}</span>", unsafe_allow_html=True)
+        #st.markdown(f"<span style='color:gray;'>Raw Overpass result: {raw_result}</span>", unsafe_allow_html=True)
         
         if landmark == "Unknown":
             description += ". No recognizable landmarks found nearby."
