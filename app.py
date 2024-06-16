@@ -32,10 +32,9 @@ def get_street_description(lat, lng):
         neighbors_u = list(G.neighbors(u))
         neighbors_v = list(G.neighbors(v))
         
-        intersecting_streets_u = [G.edges[u, n, 0]['name'] for n in neighbors_u if 'name' in G.edges[u, n, 0]]
-        intersecting_streets_v = [G.edges[v, n, 0]['name'] for n in neighbors_v if 'name' in G.edges[v, n, 0]]
+        intersecting_streets_u = [G.edges[u, n, 0].get('name', 'Unknown') for n in neighbors_u if 'name' in G.edges[u, n, 0]]
+        intersecting_streets_v = [G.edges[v, n, 0].get('name', 'Unknown') for n in neighbors_v if 'name' in G.edges[v, n, 0]]
         
-        # Ensure unique street names for "On Street," "From Street," and "To Street"
         street_name = G.edges[u, v, k].get('name', 'Unknown')
         from_street = next((street for street in intersecting_streets_u if street != street_name), "Unknown")
         to_street = next((street for street in intersecting_streets_v if street != street_name and street != from_street), "Unknown")
@@ -45,8 +44,14 @@ def get_street_description(lat, lng):
         st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
         
         # Find nearest landmark using Overpass API
-        description, landmark, raw_result = find_nearest_landmark(lat, lng)
+        landmark, raw_result = find_nearest_landmark(lat, lng)
         st.markdown(f"<span style='color:gray;'>Raw Overpass result: {raw_result}</span>", unsafe_allow_html=True)
+        
+        if landmark == "Unknown":
+            description += ". No recognizable landmarks found nearby."
+        else:
+            description += f". Nearest landmark: {landmark}"
+        
         return description, landmark
 
     except Exception as e:
@@ -59,9 +64,7 @@ def find_nearest_landmark(lat, lng):
         api = overpy.Overpass()
         query = f"""
         [out:json];
-        (
-          node(around:100,{lat},{lng})[amenity~"shop|cafe"];
-        );
+        node(around:100,{lat},{lng})[amenity~"shop|cafe"];
         out center;
         """
         result = api.query(query)
@@ -73,7 +76,7 @@ def find_nearest_landmark(lat, lng):
         st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         
         return landmark, result
-    
+        
     except Exception as e:
         st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
         return "Unknown", {}
@@ -89,8 +92,6 @@ if st.button('Find Street Description'):
         lat, lng = map(float, coords.split(','))
         description, landmark = get_street_description(lat, lng)
         st.markdown(f"**<span style='font-size: 24px;'>{description}</span>**", unsafe_allow_html=True)
-        if landmark != "Unknown":
-            st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         google_maps_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
         st.markdown(f"[Google Maps Link]({google_maps_link})")
     except Exception as e:
