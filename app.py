@@ -32,31 +32,44 @@ def get_street_description(lat, lng):
         
         st.markdown(f"<span style='color:gray;'>Generated description: {description}</span>", unsafe_allow_html=True)
         
+        # Find nearest landmark using Overpass API
+        description, landmark = find_nearest_landmark(lat, lng)
+        return description, landmark
+
+    except Exception as e:
+        st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
+        return "Error: Unable to process the request.", "Unknown"
+
+# Function to find nearest landmark
+def find_nearest_landmark(lat, lng):
+    try:
         api = overpy.Overpass()
         query = f"""
         [out:json];
-        node(around:50,{lat},{lng})[amenity];
-        out body;
+        (
+          node(around:100,{lat},{lng})[amenity];
+          way(around:100,{lat},{lng})[amenity];
+          relation(around:100,{lat},{lng})[amenity];
+        );
+        out center;
         """
         result = api.query(query)
         
-        nearest_landmark = "Unknown"
+        landmark = "Unknown"
         if result.nodes:
-            nearest_landmark = result.nodes[0].tags.get('name', 'Unknown')
-            if nearest_landmark == 'Unknown' and len(result.nodes) > 1:
-                nearest_landmark = result.nodes[1].tags.get('name', 'Unknown')
-            st.markdown(f"<span style='color:gray;'>Nearest landmark found: {nearest_landmark}</span>", unsafe_allow_html=True)
+            landmark = result.nodes[0].tags.get('name', 'Unknown')
+        elif result.ways:
+            landmark = result.ways[0].tags.get('name', 'Unknown')
+        elif result.relations:
+            landmark = result.relations[0].tags.get('name', 'Unknown')
         
-        if nearest_landmark == "Unknown":
-            description += ". No recognizable landmarks found nearby."
-        else:
-            description += f". Nearest landmark: {nearest_landmark}"
+        st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         
-        return description
+        return landmark
     
     except Exception as e:
         st.markdown(f"<span style='color:gray;'>An error occurred: {e}</span>", unsafe_allow_html=True)
-        return "Error: Unable to process the request."
+        return "Unknown"
 
 # Streamlit app layout
 st.title("Street Description Finder")
@@ -67,8 +80,10 @@ coords = st.text_input('Coordinates (lat, long)', '40.78168979595882, -73.954872
 if st.button('Find Street Description'):
     try:
         lat, lng = map(float, coords.split(','))
-        description = get_street_description(lat, lng)
+        description, landmark = get_street_description(lat, lng)
         st.markdown(f"**<span style='font-size: 24px;'>{description}</span>**", unsafe_allow_html=True)
+        if landmark != "Unknown":
+            st.markdown(f"<span style='color:gray;'>Nearest landmark: {landmark}</span>", unsafe_allow_html=True)
         google_maps_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
         st.markdown(f"[Google Maps Link]({google_maps_link})")
     except Exception as e:
