@@ -1,90 +1,73 @@
 import streamlit as st
 import osmnx as ox
-import requests
-import random
+import overpy
+from streamlit.logger import get_logger
 
+# Initialize logger
+logger = get_logger(__name__)
+
+# Function to get street description
 def get_street_description(lat, lng):
-    try:
-        st.markdown("<span style='color:gray;'>Downloading street network...</span>", unsafe_allow_html=True)
-        G = ox.graph_from_point((lat, lng), dist=500, network_type='drive')
-        st.markdown("<span style='color:gray;'>Street network downloaded.</span>", unsafe_allow_html=True)
-
-        st.markdown(f"<span style='color:gray;'>Finding the nearest street segment for point ({lat}, {lng})...</span>", unsafe_allow_html=True)
-        nearest_node = ox.distance.nearest_nodes(G, lng, lat)
-        st.markdown(f"<span style='color:gray;'>Nearest node found: {nearest_node}</span>", unsafe_allow_html=True)
-
-        edges = list(G.edges(nearest_node, keys=True, data=True))
-        u, v, key, data = edges[0]
-        st.markdown(f"<span style='color:gray;'>Nearest edge found: ({u}, {v}, {key})</span>", unsafe_allow_html=True)
-
-        def get_intersecting_streets(G, node):
-            intersecting_streets = []
-            for neighbor in G.neighbors(node):
-                edge_data = G.get_edge_data(node, neighbor)
-                for key in edge_data:
-                    street_name = edge_data[key].get('name')
-                    if street_name:
-                        intersecting_streets.append(street_name if isinstance(street_name, str) else street_name[0])
-            return list(set(intersecting_streets))
-
-        streets_at_u = get_intersecting_streets(G, u)
-        streets_at_v = get_intersecting_streets(G, v)
-        st.markdown(f"<span style='color:gray;'>Intersecting streets at node {u}: {streets_at_u}</span>", unsafe_allow_html=True)
-        st.markdown(f"<span style='color:gray;'>Intersecting streets at node {v}: {streets_at_v}</span>", unsafe_allow_html=True)
-
-        if streets_at_u and streets_at_v:
-            from_street = streets_at_u[0] if streets_at_u[0] != streets_at_v[0] else (streets_at_u[1] if len(streets_at_u) > 1 else "Unknown")
-            to_street = streets_at_v[0] if streets_at_v[0] != streets_at_u[0] else (streets_at_v[1] if len(streets_at_v) > 1 else "Unknown")
-        else:
-            from_street = "Unknown"
-            to_street = "Unknown"
-
-        main_street = data.get('name', 'Unknown')
-
-        # Query Overpass Turbo for the nearest landmark
-        overpass_url = "http://overpass-api.de/api/interpreter"
-        overpass_query = f"""
-        [out:json];
-        node
-          [amenity]
-          (around:500,{lat},{lng});
-        out body;
-        """
-        response = requests.get(overpass_url, params={'data': overpass_query})
-        data = response.json()
-
-        if data['elements']:
-            nearest_landmark = data['elements'][0]['tags'].get('name', 'Unknown Landmark')
-        else:
-            nearest_landmark = 'No landmark found'
-
-        return f"**<span style='font-size:20px;'>{main_street} between {from_street} and {to_street}</span>**\n\n**Nearest Landmark:** {nearest_landmark}", lat, lng
+    logger.info("Downloading street network...")
+    G = ox.graph_from_point((lat, lng), dist=100, network_type='drive')
+    logger.info("Street network downloaded.")
     
-    except ImportError as e:
-        st.markdown("<span style='color:gray;'>An error occurred while importing necessary modules. Please ensure OSMnx and its dependencies are installed.</span>", unsafe_allow_html=True)
-        st.write(str(e))
-        return "<span style='color:red;'>Error: Unable to process the request due to import issues.</span>", None, None
+    nearest_node = ox.distance.nearest_nodes(G, lng, lat)
+    logger.info(f"Nearest node found: {nearest_node}")
+    
+    u, v, k = ox.distance.nearest_edges(G, lng, lat)
+    logger.info(f"Nearest edge found: {(u, v, k)}")
+    
+    neighbors_u = list(G.neighbors(u))
+    neighbors_v = list(G.neighbors(v))
+    
+    intersecting_streets_u = [G.edges[u, n, 0]['name'] for n in neighbors_u if 'name' in G.edges[u, n, 0]]
+    intersecting_streets_v = [G.edges[v, n, 0]['name'] for n in neighbors_v if 'name' in G.edges[v, n, 0]]
+    
+    to_street = intersecting_streets_u[0] if intersecting_streets_u else "Unknown"
+    from_street = intersecting_streets_v[0] if intersecting_streets_v else "Unknown"
+    
+    # Find the street name of the nearest edge
+    street_name_u = G.edges[u, v, k].get('name', 'Unknown')
+    street_name_v = G.edges[u, v, k].get('name', 'Unknown')
+    
+    # Determine the description
+    street_name = street_name_u if street_name_u != 'Unknown' else street_name_v
+    description = f"{street_name} between {to_street} and {from_street}"
+    
+    logger.info(f"Generated description: {description}")
+    
+    # Use Overpass API to find the nearest landmark
+    api = overpy.Overpass()
+    query = f"""
+    [out:json];
+    node(around:50,{lat},{lng})[amenity];
+    out body;
+    """
+    result = api.query(query)
+    
+    nearest_landmark = "Unknown"
+    if result.nodes:
+        nearest_landmark = result.nodes[0].tags.get('name', 'Unknown')
+        logger.info(f"Nearest landmark found: {nearest_landmark}")
+    
+    description = f"{description}. Nearest landmark: {nearest_landmark}"
+    
+    return description
 
-    except Exception as e:
-        st.markdown("<span style='color:gray;'>An error occurred while processing the request.</span>", unsafe_allow_html=True)
-        st.write(str(e))
-        return "<span style='color:red;'>Error: Unable to process the request.</span>", None, None
+# Streamlit app layout
+st.title("Street Description Finder")
+st.write("Enter latitude and longitude coordinates to get the street description.")
 
-
-st.title('Street Description Finder')
-st.write('Enter latitude and longitude coordinates to get the street description.')
-
-coords = st.text_input('Coordinates (lat, long)', '40.7217267, -73.9870392')
-coords = coords.split(',')
-
-try:
-    lat = float(coords[0].strip())
-    lng = float(coords[1].strip())
-except:
-    st.write("Please enter valid coordinates.")
+coords = st.text_input('Coordinates (lat, long)', '40.78168979595882, -73.9548727701682')
 
 if st.button('Find Street Description'):
-    description, lat, lng = get_street_description(lat, lng)
-    st.markdown(description, unsafe_allow_html=True)
-    if lat and lng:
-        st.markdown(f"[Google Maps Link](https://www.google.com/maps?q={lat},{lng})")
+    try:
+        lat, lng = map(float, coords.split(','))
+        description = get_street_description(lat, lng)
+        st.write(f"**{description}**")
+        google_maps_link = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
+        st.markdown(f"[Google Maps Link]({google_maps_link})")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        logger.error(f"Error: {e}")
