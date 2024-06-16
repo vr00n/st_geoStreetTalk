@@ -18,13 +18,13 @@ def get_street_description(lat, lng):
         neighbors_u = list(G.neighbors(u))
         neighbors_v = list(G.neighbors(v))
         
-        intersecting_streets_u = list(set(G.edges[u, n, 0]['name'] for n in neighbors_u if 'name' in G.edges[u, n, 0]))
-        intersecting_streets_v = list(set(G.edges[v, n, 0]['name'] for n in neighbors_v if 'name' in G.edges[v, n, 0]))
+        intersecting_streets_u = [G.edges[u, n, 0]['name'] for n in neighbors_u if 'name' in G.edges[u, n, 0]]
+        intersecting_streets_v = [G.edges[v, n, 0]['name'] for n in neighbors_v if 'name' in G.edges[v, n, 0]]
         
         # Ensure unique street names for "On Street," "From Street," and "To Street"
         street_name = G.edges[u, v, k].get('name', 'Unknown')
-        to_street = next((street for street in intersecting_streets_u if street != street_name), "Unknown")
-        from_street = next((street for street in intersecting_streets_v if street != street_name and street != to_street), "Unknown")
+        from_street = next((street for street in intersecting_streets_u if street != street_name), "Unknown")
+        to_street = next((street for street in intersecting_streets_v if street != street_name and street != from_street), "Unknown")
         
         description = f"{street_name} between {from_street} and {to_street}"
         
